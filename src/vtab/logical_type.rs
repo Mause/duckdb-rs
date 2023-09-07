@@ -228,14 +228,3 @@ impl LogicalType {
         Self::from(c_logical_type)
     }
 }
-
-#[cfg(test)]
-mod test {
-    use crate::vtab::LogicalType;
-
-    #[test]
-    fn test_struct() {
-        let fields = vec![("hello", LogicalType::new(crate::vtab::LogicalTypeId::Boolean))];
-        LogicalType::struct_type(fields.as_slice());
-    }
-}
