@@ -34,13 +34,15 @@ jobs:
           targets: ${{ matrix.target }}
           components: 'rustfmt, clippy'
       # download libduckdb
-      - uses: robinraju/release-downloader@v1.4
-        name: Download duckdb
-        with:
-          repository: "duckdb/duckdb"
-          tag: "v0.9.2"
-          fileName: ${{ matrix.duckdb }}
-          out-file-path: .
+      # - uses: robinraju/release-downloader@v1.4
+      #   name: Download duckdb
+      #   with:
+      #     repository: "duckdb/duckdb"
+      #     tag: "v0.9.2"
+      #     fileName: ${{ matrix.duckdb }}
+      #     out-file-path: .
+
+      - run: wget https://artifacts.duckdb.org/latest/${{ matrix.duckdb }}
 
       # For Linux
       - name: Linux extract duckdb
