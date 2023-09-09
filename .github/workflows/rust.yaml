@@ -42,7 +42,9 @@ jobs:
       #     fileName: ${{ matrix.duckdb }}
       #     out-file-path: .
 
-      - run: wget https://artifacts.duckdb.org/latest/duckdb-binaries-linux.zip
+      - run: |
+          wget https://artifacts.duckdb.org/latest/duckdb-binaries-linux.zip
+          unzip duckdb-binaries-linux.zip
         if: matrix.os == 'ubuntu-latest'
 
       - run: wget https://artifacts.duckdb.org/latest/duckdb-binaries-windows.zip
@@ -80,6 +82,14 @@ jobs:
       - name: Upload to codecov.io
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v1
+
+      # For windows
+      - name: Windows extract duckdb
+        if: matrix.os == 'windows-latest'
+        uses: DuckSoft/extract-7z-action@v1.0
+        with:
+          pathSource: duckdb-binaries-windows.zip
+          pathTarget: ${{ github.workspace }}
 
       # For windows
       - name: Windows extract duckdb
