@@ -69,7 +69,7 @@ mod build_bundled {
     ) {
         cpp_files.extend(manifest.extensions.get(extension).unwrap().cpp_files.clone());
         include_dirs.extend(manifest.extensions.get(extension).unwrap().include_dirs.clone());
-        cfg.define(&format!("BUILD_{}_EXTENSION", extension.to_uppercase()), Some("1"));
+        cfg.define(&format!("DUCKDB_EXTENSION_{}_LINKED", extension.to_uppercase()), Some("1"));
     }
 
     fn untar_archive() {
