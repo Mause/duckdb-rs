@@ -45,10 +45,10 @@ jobs:
           out-file-path: .
 
       - run: |
-          wget https://artifacts.duckdb.org/latest/duckdb-binaries-linux.zip
+          wget https://artifacts.duckdb.org/latest/${{ matrix.duckdb }}
         if: matrix.os == 'ubuntu-latest' && matrix.version == 'nightly'
 
-      - run: Invoke-WebRequest https://artifacts.duckdb.org/latest/duckdb-binaries-windows.zip -OutFile duckdb-binaries-windows.zip
+      - run: Invoke-WebRequest https://artifacts.duckdb.org/latest/${{ matrix.duckdb }} -OutFile ${{ matrix.duckdb }}
         if: matrix.os == 'windows-latest' && matrix.version == 'nightly'
         shell: powershell
 
