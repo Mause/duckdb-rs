@@ -59,6 +59,7 @@ jobs:
         with:
           file_path: ${{ github.workspace }}/${{ matrix.duckdb }}
           extract_dir: libduckdb
+          verbose: true
       - run: cargo fmt --all -- --check
         if: matrix.os == 'ubuntu-latest'
       - run: cargo clippy --all-targets --workspace --all-features -- -D warnings -A clippy::redundant-closure
