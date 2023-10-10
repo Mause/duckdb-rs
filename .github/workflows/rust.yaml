@@ -46,7 +46,7 @@ jobs:
 
       - run: |
           wget https://artifacts.duckdb.org/latest/duckdb-binaries-linux.zip
-          unzip duckdb-binaries-linux.zip
+          unzip -o duckdb-binaries-linux.zip
         if: matrix.os == 'ubuntu-latest' && matrix.duckdb != 'nightly'
 
       - run: Invoke-WebRequest https://artifacts.duckdb.org/latest/duckdb-binaries-windows.zip -OutFile duckdb-binaries-windows.zip
