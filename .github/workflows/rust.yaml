@@ -56,6 +56,9 @@ jobs:
       - name: Linux extract duckdb
         if: matrix.os == 'ubuntu-latest'
         run: unzip -ov ${{ github.workspace }}/${{ matrix.duckdb }} -d libduckdb
+      - name: Unzip again
+        if: matrix.os == 'ubuntu-latest' && matrix.version == 'nightly'
+        run: unzip -ov libduckdb/libduckdb-linux-amd64.zip -d libduckdb
       - run: cargo fmt --all -- --check
         if: matrix.os == 'ubuntu-latest'
       - run: cargo clippy --all-targets --workspace --all-features -- -D warnings -A clippy::redundant-closure
