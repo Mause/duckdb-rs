@@ -9,7 +9,7 @@ env:
   RUST_BACKTRACE: 1
 jobs:
   test:
-    name: Test ${{ matrix.target }}
+    name: Test ${{ matrix.target }} (${{matrix.duckdb}})
     strategy:
       fail-fast: false
       matrix:
