@@ -55,11 +55,7 @@ jobs:
       # For Linux
       - name: Linux extract duckdb
         if: matrix.os == 'ubuntu-latest'
-        uses: ihiroky/extract-action@v1
-        with:
-          file_path: ${{ github.workspace }}/${{ matrix.duckdb }}
-          extract_dir: libduckdb
-          verbose: true
+        run: unzip -ov ${{ github.workspace }}/${{ matrix.duckdb }} -d libduckdb
       - run: cargo fmt --all -- --check
         if: matrix.os == 'ubuntu-latest'
       - run: cargo clippy --all-targets --workspace --all-features -- -D warnings -A clippy::redundant-closure
