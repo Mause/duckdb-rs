@@ -9,13 +9,14 @@ env:
   RUST_BACKTRACE: 1
 jobs:
   test:
-    name: Test ${{ matrix.target }}
+    name: ${{ matrix.target }} (${{matrix.version}})
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
-          - { target: x86_64-pc-windows-msvc, os: windows-latest, duckdb: libduckdb-windows-amd64.zip }
-          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, duckdb: libduckdb-linux-amd64.zip }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, duckdb: libduckdb-windows-amd64.zip, version: v0.9.2 }
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, duckdb: libduckdb-linux-amd64.zip, version: v0.9.2 }
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, duckdb: duckdb-binaries-linux.zip, version: nightly }
           #- { target: x86_64-apple-darwin, os: macos-latest }
           #- {
               #target: x86_64-pc-windows-gnu,
@@ -35,20 +36,33 @@ jobs:
           components: 'rustfmt, clippy'
       # download libduckdb
       - uses: robinraju/release-downloader@v1.4
+        if: matrix.version != 'nightly'
         name: Download duckdb
         with:
           repository: "duckdb/duckdb"
-          tag: "v0.9.2"
+          tag: ${{ matrix.version }}
           fileName: ${{ matrix.duckdb }}
           out-file-path: .
+
+      - run: |
+          wget https://artifacts.duckdb.org/latest/${{ matrix.duckdb }}
+        if: matrix.os == 'ubuntu-latest' && matrix.version == 'nightly'
+
+      - run: Invoke-WebRequest https://artifacts.duckdb.org/latest/${{ matrix.duckdb }} -OutFile ${{ matrix.duckdb }}
+        if: matrix.os == 'windows-latest' && matrix.version == 'nightly'
+        shell: powershell
 
       # For Linux
       - name: Linux extract duckdb
         if: matrix.os == 'ubuntu-latest'
-        uses: ihiroky/extract-action@v1
-        with:
-          file_path: ${{ github.workspace }}/${{ matrix.duckdb }}
-          extract_dir: libduckdb
+        run: |
+          unzip -vo ${{ github.workspace }}/${{ matrix.duckdb }}
+          unzip -o ${{ github.workspace }}/${{ matrix.duckdb }} -d libduckdb
+      - name: Unzip again
+        if: matrix.os == 'ubuntu-latest' && matrix.version == 'nightly'
+        run: |
+          unzip -vo libduckdb/libduckdb-linux-amd64.zip
+          unzip -o libduckdb/libduckdb-linux-amd64.zip -d libduckdb
       - run: cargo fmt --all -- --check
         if: matrix.os == 'ubuntu-latest'
       - run: cargo clippy --all-targets --workspace --all-features -- -D warnings -A clippy::redundant-closure
@@ -73,6 +87,14 @@ jobs:
       - name: Upload to codecov.io
         if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v1
+
+      # For windows
+      - name: Windows extract duckdb
+        if: matrix.os == 'windows-latest' && matrix.version == 'nightly'
+        uses: DuckSoft/extract-7z-action@v1.0
+        with:
+          pathSource: duckdb-binaries-windows.zip
+          pathTarget: ${{ github.workspace }}
 
       # For windows
       - name: Windows extract duckdb
