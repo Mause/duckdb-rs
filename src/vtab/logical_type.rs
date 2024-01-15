@@ -66,6 +66,8 @@ pub enum LogicalTypeId {
     Uuid = DUCKDB_TYPE_DUCKDB_TYPE_UUID,
     /// Union
     Union = DUCKDB_TYPE_DUCKDB_TYPE_UNION,
+    /// Bit
+    Bit = DUCKDB_TYPE_DUCKDB_TYPE_BIT,
 }
 
 impl From<u32> for LogicalTypeId {

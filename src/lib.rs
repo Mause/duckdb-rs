@@ -1267,6 +1267,17 @@ mod test {
     }
 
     #[test]
+    fn test_bit() -> Result<()> {
+        let db = checked_memory_handle();
+
+        let value_ref = db.query_row("SELECT 1::BIT", [], |row| -> Result<u8> { row.get(0) })?;
+
+        assert_eq!(value_ref, 1);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_query_arrow_record_batch_large() -> Result<()> {
         let db = checked_memory_handle();
         db.execute_batch("BEGIN TRANSACTION")?;
