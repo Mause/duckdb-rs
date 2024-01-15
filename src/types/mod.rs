@@ -149,6 +149,7 @@ pub enum Type {
     Interval,
     /// LIST
     List(Box<Type>),
+    UHugeInt,
     /// Any
     Any,
 }
@@ -219,6 +220,7 @@ impl fmt::Display for Type {
             Type::Time64 => f.pad("Time64"),
             Type::Interval => f.pad("Interval"),
             Type::List(..) => f.pad("List"),
+            Type::UHugeInt => f.pad("UHugeInt"),
             Type::Any => f.pad("Any"),
         }
     }
