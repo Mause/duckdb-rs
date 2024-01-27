@@ -22,7 +22,7 @@ impl FromSql for Url {
                 let s = std::str::from_utf8(s).map_err(|e| FromSqlError::Other(Box::new(e)))?;
                 Url::parse(s).map_err(|e| FromSqlError::Other(Box::new(e)))
             }
-            _ => Err(FromSqlError::InvalidType),
+            _ => Err(FromSqlError::InvalidType("Expected Text".into())),
         }
     }
 }

@@ -9,7 +9,7 @@ use std::{error::Error, fmt};
 pub enum FromSqlError {
     /// Error when an DuckDB value is requested, but the type of the result
     /// cannot be converted to the requested Rust type.
-    InvalidType,
+    InvalidType(String),
 
     /// Error when the value returned by DuckDB cannot be stored into the
     /// requested type.
@@ -27,7 +27,7 @@ pub enum FromSqlError {
 impl PartialEq for FromSqlError {
     fn eq(&self, other: &FromSqlError) -> bool {
         match (self, other) {
-            (FromSqlError::InvalidType, FromSqlError::InvalidType) => true,
+            (FromSqlError::InvalidType(..), FromSqlError::InvalidType(..)) => true,
             (FromSqlError::OutOfRange(n1), FromSqlError::OutOfRange(n2)) => n1 == n2,
             #[cfg(feature = "uuid")]
             (FromSqlError::InvalidUuidSize(s1), FromSqlError::InvalidUuidSize(s2)) => s1 == s2,
@@ -38,8 +38,8 @@ impl PartialEq for FromSqlError {
 
 impl fmt::Display for FromSqlError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            FromSqlError::InvalidType => write!(f, "Invalid type"),
+        match self {
+            FromSqlError::InvalidType(msg) => write!(f, "Invalid type: {}", msg),
             FromSqlError::OutOfRange(i) => write!(f, "Value {i} out of range"),
             #[cfg(feature = "uuid")]
             FromSqlError::InvalidUuidSize(s) => {
@@ -111,12 +111,12 @@ macro_rules! from_sql_integral(
                                 let v = value.as_str()?.parse::<i128>();
                                 match v {
                                     Ok(i) => Err(FromSqlError::OutOfRange(i)),
-                                    _ => Err(FromSqlError::InvalidType),
+                                    _ => Err(FromSqlError::InvalidType("Expected Parsable".into())),
                                 }
                             },
                         }
                     }
-                    _ => Err(FromSqlError::InvalidType),
+                    _ => Err(FromSqlError::InvalidType(format!("UNKNOWN: {:#?}", value.data_type()))),
                 }
             }
         }
@@ -246,7 +246,7 @@ impl FromSql for uuid::Uuid {
                     uuid::Builder::from_slice(bytes).map_err(|_| FromSqlError::InvalidUuidSize(bytes.len()))
                 })
                 .map(|builder| builder.into_uuid()),
-            _ => Err(FromSqlError::InvalidType),
+            _ => Err(FromSqlError::InvalidType("Expected Text or Blob".into())),
         }
     }
 }

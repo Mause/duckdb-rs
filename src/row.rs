@@ -302,7 +302,7 @@ impl<'stmt> Row<'stmt> {
         let idx = idx.idx(self.stmt)?;
         let value = self.value_ref(self.current_row, idx);
         FromSql::column_result(value).map_err(|err| match err {
-            FromSqlError::InvalidType => {
+            FromSqlError::InvalidType(message) => {
                 Error::InvalidColumnType(idx, self.stmt.column_name_unwrap(idx).into(), value.data_type())
             }
             FromSqlError::OutOfRange(i) => Error::IntegralValueOutOfRange(idx, i),
