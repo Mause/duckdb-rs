@@ -112,6 +112,7 @@ impl<'a> ValueRef<'a> {
         match *self {
             ValueRef::Blob(b) => Ok(b),
             ValueRef::Text(t) => Ok(t),
+            ValueRef::Bit(b) => Ok(b),
             _ => Err(FromSqlError::InvalidType),
         }
     }

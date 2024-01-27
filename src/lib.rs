@@ -1270,9 +1270,21 @@ mod test {
     fn test_bit() -> Result<()> {
         let db = checked_memory_handle();
 
-        let value_ref = db.query_row("SELECT 1::BIT", [], |row| -> Result<u8> { row.get(0) })?;
+        let mut result = db.prepare("SELECT bit from test_all_types()")?;
+        let rows = result.query([])?;
+        let value_ref: Vec<Option<Vec<u8>>> = rows
+            .map(|row| {
+                Ok(match row.get_ref(0).unwrap() {
+                    ValueRef::Bit(b) | ValueRef::Blob(b) => (Some(b.to_vec())),
+                    ValueRef::Null => None,
+                    result => panic!("unexpected: {}", result.data_type()),
+                })
+            })
+            .collect()?;
 
-        assert_eq!(value_ref, 1);
+        assert_eq!(value_ref[0], Some(vec![1, 145, 46, 42, 215]));
+        assert_eq!(value_ref[1], Some(vec![3, 245]));
+        assert_eq!(value_ref[2], None);
 
         Ok(())
     }
