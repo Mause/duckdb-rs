@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       # This has a matcher for test panics, so we use it even though elsewhere
       # we use actions-rs/toolchain.
-      - uses: hecrj/setup-rust-action@v1
+      - uses: hecrj/setup-rust-action@v2
         with:
           rust-version: stable${{ matrix.host }}
           targets: ${{ matrix.target }}
