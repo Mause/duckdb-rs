@@ -34,7 +34,7 @@ jobs:
           targets: ${{ matrix.target }}
           components: 'rustfmt, clippy'
       # download libduckdb
-      - uses: robinraju/release-downloader@v1.4
+      - uses: robinraju/release-downloader@v1.9
         name: Download duckdb
         with:
           repository: "duckdb/duckdb"
