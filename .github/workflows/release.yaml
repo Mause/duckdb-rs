@@ -10,7 +10,7 @@ jobs:
     name: Cargo Publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # This has a matcher for test panics, so we use it even though elsewhere
       # we use actions-rs/toolchain.
       - uses: hecrj/setup-rust-action@v2

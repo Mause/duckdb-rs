@@ -25,7 +25,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # This has a matcher for test panics, so we use it even though elsewhere
       # we use actions-rs/toolchain.
       - uses: hecrj/setup-rust-action@v2
@@ -106,7 +106,7 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # - run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
       # - run: vcpkg install openssl:x64-windows-static-md
       - run: choco install openssl
@@ -128,7 +128,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # Need nightly rust.
       - uses: hecrj/setup-rust-action@v2
         with:
