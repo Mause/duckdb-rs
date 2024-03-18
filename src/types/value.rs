@@ -57,6 +57,7 @@ pub enum Value {
     },
     /// The value is a list
     List(Vec<Value>),
+    /// The value is a UHugeInt
     UHugeInt(u128),
 }
 

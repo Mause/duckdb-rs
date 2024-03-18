@@ -149,6 +149,7 @@ pub enum Type {
     Interval,
     /// LIST
     List(Box<Type>),
+    /// UHUGEINT
     UHugeInt,
     /// Any
     Any,

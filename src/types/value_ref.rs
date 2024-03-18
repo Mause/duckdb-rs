@@ -75,6 +75,7 @@ pub enum ValueRef<'a> {
     },
     /// The value is a list
     List(&'a ListArray, usize),
+    /// The value is a UHugeInt
     UHugeInt(u128),
 }
 
