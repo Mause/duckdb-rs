@@ -40,7 +40,7 @@ pub enum ValueRef<'a> {
     BigInt(i64),
     /// The value is a signed huge integer.
     HugeInt(i128),
-    /// The value is a unsigned tiny integer.
+    /// The value is unsigned tiny integer.
     UTinyInt(u8),
     /// The value is a unsigned small integer.
     USmallInt(u16),
@@ -75,7 +75,7 @@ pub enum ValueRef<'a> {
     },
     /// The value is a list
     List(&'a ListArray, usize),
-    /// The value is a UHugeInt
+    /// The value is an unsigned HugeInt
     UHugeInt(u128),
 }
 
