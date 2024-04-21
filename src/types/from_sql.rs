@@ -204,6 +204,15 @@ impl FromSql for String {
     }
 }
 
+impl FromSql for u128 {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value {
+            ValueRef::UHugeInt(value) => Ok(value).into(),
+            _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
 impl FromSql for Box<str> {
     #[inline]
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {

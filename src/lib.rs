@@ -1271,6 +1271,17 @@ mod test {
     }
 
     #[test]
+    fn test_uhugeint() -> Result<()> {
+        let db = checked_memory_handle();
+
+        let value_ref = db.query_row("SELECT 1::UHUGEINT", [], |row| -> Result<u128> { row.get(0) })?;
+
+        assert_eq!(value_ref, 1);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_query_arrow_record_batch_large() -> Result<()> {
         let db = checked_memory_handle();
         db.execute_batch("BEGIN TRANSACTION")?;

@@ -40,7 +40,7 @@ pub enum ValueRef<'a> {
     BigInt(i64),
     /// The value is a signed huge integer.
     HugeInt(i128),
-    /// The value is a unsigned tiny integer.
+    /// The value is unsigned tiny integer.
     UTinyInt(u8),
     /// The value is a unsigned small integer.
     USmallInt(u16),
@@ -75,6 +75,8 @@ pub enum ValueRef<'a> {
     },
     /// The value is a list
     List(&'a ListArray, usize),
+    /// The value is an unsigned HugeInt
+    UHugeInt(u128),
 }
 
 impl ValueRef<'_> {
@@ -103,6 +105,7 @@ impl ValueRef<'_> {
             ValueRef::Time64(..) => Type::Time64,
             ValueRef::Interval { .. } => Type::Interval,
             ValueRef::List(arr, _) => arr.data_type().into(),
+            ValueRef::UHugeInt(..) => Type::UHugeInt,
         }
     }
 
@@ -170,6 +173,7 @@ impl From<ValueRef<'_>> for Value {
                     .collect();
                 Value::List(map)
             }
+            ValueRef::UHugeInt(i) => Value::UHugeInt(i),
         }
     }
 }
@@ -213,6 +217,7 @@ impl<'a> From<&'a Value> for ValueRef<'a> {
             Value::Time64(t, d) => ValueRef::Time64(t, d),
             Value::Interval { months, days, nanos } => ValueRef::Interval { months, days, nanos },
             Value::List(..) => unimplemented!(),
+            Value::UHugeInt(i) => ValueRef::UHugeInt(i),
         }
     }
 }
