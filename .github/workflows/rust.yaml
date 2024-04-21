@@ -77,10 +77,10 @@ jobs:
       # For windows
       - name: Windows extract duckdb
         if: matrix.os == 'windows-latest'
-        uses: DuckSoft/extract-7z-action@v1.0
+        uses: ihiroky/extract-action@v1
         with:
-          pathSource: D:\a\duckdb-rs\duckdb-rs\${{ matrix.duckdb }}
-          pathTarget: ${{ github.workspace }}/libduckdb
+          file_path: D:\a\duckdb-rs\duckdb-rs\${{ matrix.duckdb }}
+          extract_dir: ${{ github.workspace }}/libduckdb
 
       - name: Add path to PATH environment variable
         if: matrix.os == 'windows-latest'
