@@ -13,7 +13,10 @@ void duckdb_scalar_function_set_function(duckdb_scalar_function scalar_function,
 duckdb_state duckdb_register_scalar_function(duckdb_connection con, duckdb_scalar_function scalar_function);
  */
 
-use libduckdb_sys::{duckdb_connection, duckdb_data_chunk, duckdb_function_info, duckdb_logical_type, duckdb_vector};
+use libduckdb_sys::{
+    duckdb_connection, duckdb_data_chunk, duckdb_delete_callback_t, duckdb_function_info, duckdb_logical_type,
+    duckdb_vector,
+};
 use std::ffi::{c_char, c_void};
 
 #[allow(non_camel_case_types)]
@@ -41,6 +44,14 @@ extern "C" {
 
 extern "C" {
     pub(crate) fn duckdb_scalar_function_set_return_type(func: duckdb_scalar_function, ptr: duckdb_logical_type);
+}
+
+extern "C" {
+    pub(crate) fn duckdb_scalar_function_set_extra_info(
+        func: duckdb_scalar_function,
+        extra_info: *mut c_void,
+        destroy: duckdb_delete_callback_t,
+    );
 }
 
 extern "C" {

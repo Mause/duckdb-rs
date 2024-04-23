@@ -1,6 +1,6 @@
 use crate::{
     inner_connection::InnerConnection,
-    vtab::{DataChunk, FlatVector, FunctionInfo, LogicalType},
+    vtab::{drop_data_c, DataChunk, FlatVector, Free, FunctionInfo, LogicalType},
     Connection, Error,
 };
 use libduckdb_sys as ffi;
@@ -11,8 +11,8 @@ mod modname;
 
 use self::modname::{
     duckdb_create_scalar_function, duckdb_register_scalar_function, duckdb_scalar_function,
-    duckdb_scalar_function_add_parameter, duckdb_scalar_function_set_function, duckdb_scalar_function_set_name,
-    duckdb_scalar_function_set_return_type, duckdb_scalar_function_t,
+    duckdb_scalar_function_add_parameter, duckdb_scalar_function_set_extra_info, duckdb_scalar_function_set_function,
+    duckdb_scalar_function_set_name, duckdb_scalar_function_set_return_type, duckdb_scalar_function_t,
 };
 
 /// The duckdb scalar function interface
@@ -124,16 +124,26 @@ impl ScalarFunction {
             self
         }
     }
+    /// Set the extra info of the scalar function
+    pub fn set_extra_info<T>(&mut self, extra_info: *mut T) -> &mut Self
+    where
+        T: Sized + Free,
+    {
+        unsafe {
+            duckdb_scalar_function_set_extra_info(self.0, extra_info.cast(), Some(drop_data_c::<T>));
+            self
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        vtab::{DataChunk, FlatVector, FunctionInfo, LogicalType, LogicalTypeId},
+        vtab::{malloc_data_c, DataChunk, FlatVector, Free, FunctionInfo, LogicalType, LogicalTypeId},
         Connection,
     };
 
-    use super::VFunc;
+    use super::{ScalarFunction, VFunc};
 
     struct BasicFunc;
 
@@ -166,6 +176,58 @@ mod test {
 
         let row: i64 = db.query_row("SELECT basic_func(1)", [], |row| row.get(0))?;
         assert_eq!(row, 2);
+
+        Ok(())
+    }
+
+    #[repr(C)]
+    struct ExtraInfoStruct(i64);
+
+    impl Free for ExtraInfoStruct {}
+
+    struct ExtraInfoFunc;
+
+    impl VFunc for ExtraInfoFunc {
+        unsafe fn func(
+            func: &FunctionInfo,
+            input: &mut DataChunk,
+            output: &mut FlatVector,
+        ) -> crate::Result<(), Box<dyn std::error::Error>> {
+            let mut input = input.flat_vector(0);
+            let output = output.as_mut_slice::<i64>();
+            let input = input.as_mut_slice::<i64>();
+            for i in 0..input.len() {
+                output[i] = input[i] * (*func.get_extra_info::<ExtraInfoStruct>()).0;
+            }
+            Ok(())
+        }
+
+        fn parameters() -> Option<Vec<LogicalType>> {
+            Some(vec![LogicalType::new(LogicalTypeId::Integer)])
+        }
+
+        fn return_type() -> LogicalType {
+            LogicalType::new(LogicalTypeId::Integer)
+        }
+    }
+
+    #[test]
+    fn test_extra_info() -> Result<(), Box<dyn std::error::Error>> {
+        let mut func = ScalarFunction::new();
+        let extra_info: *mut ExtraInfoStruct;
+        unsafe {
+            extra_info = malloc_data_c::<ExtraInfoStruct>();
+            (*extra_info).0 = 10;
+        }
+        func.set_name("name")
+            .set_return_type(LogicalType::new(LogicalTypeId::Integer))
+            .set_extra_info(extra_info);
+        let db = Connection::open_in_memory()?;
+        db.db.borrow_mut().register_scalar_function(func)?;
+
+        let row: i64 = db.query_row("SELECT name(1)", [], |r| r.get(0))?;
+
+        assert_eq!(row, 100);
 
         Ok(())
     }
