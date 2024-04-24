@@ -563,7 +563,7 @@ impl<'stmt> Row<'stmt> {
                 )))
             }
         };
-        return Ok(value);
+        Ok(value)
     }
 
     /// Get the value of a particular column of the result row as a `ValueRef`,
