@@ -7,7 +7,7 @@ mod openssl;
 /// `cfg!(windows)`, since the latter does not properly handle cross-compilation
 ///
 /// Note that there is no way to know at compile-time which system we'll be
-/// targetting, and this test must be made at run-time (of the build script) See
+/// targeting, and this test must be made at run-time (of the build script) See
 /// https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts
 #[allow(dead_code)]
 fn win_target() -> bool {
@@ -323,7 +323,7 @@ mod bindings {
         bindgen::builder()
             .trust_clang_mangling(false)
             .header(header.clone())
-            .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+            .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
             .generate()
             .unwrap_or_else(|_| panic!("could not run bindgen on header {header}"))
             .write(Box::new(&mut output))

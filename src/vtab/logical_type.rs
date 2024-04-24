@@ -1,9 +1,12 @@
-use std::{ffi::CString, fmt::Debug};
+use std::{
+    ffi::{c_char, CString},
+    fmt::Debug,
+};
 
 use crate::ffi::*;
 
 /// Logical Type Id
-/// https://duckdb.org/docs/api/c/types
+/// <https://duckdb.org/docs/api/c/types>
 #[repr(u32)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum LogicalTypeId {
@@ -63,6 +66,8 @@ pub enum LogicalTypeId {
     Uuid = DUCKDB_TYPE_DUCKDB_TYPE_UUID,
     /// Union
     Union = DUCKDB_TYPE_DUCKDB_TYPE_UNION,
+    /// Timestamp TZ
+    TimestampTZ = DUCKDB_TYPE_DUCKDB_TYPE_TIMESTAMP_TZ,
 }
 
 impl From<u32> for LogicalTypeId {
@@ -97,13 +102,14 @@ impl From<u32> for LogicalTypeId {
             DUCKDB_TYPE_DUCKDB_TYPE_MAP => Self::Map,
             DUCKDB_TYPE_DUCKDB_TYPE_UUID => Self::Uuid,
             DUCKDB_TYPE_DUCKDB_TYPE_UNION => Self::Union,
+            DUCKDB_TYPE_DUCKDB_TYPE_TIMESTAMP_TZ => Self::TimestampTZ,
             _ => panic!(),
         }
     }
 }
 
 /// DuckDB Logical Type.
-/// https://duckdb.org/docs/sql/data_types/overview
+/// <https://duckdb.org/docs/sql/data_types/overview>
 pub struct LogicalType {
     pub(crate) ptr: duckdb_logical_type,
 }
@@ -176,25 +182,60 @@ impl LogicalType {
         }
     }
 
-    /// Make a `LogicalType` for `struct`
-    // pub fn struct_type(fields: &[(&str, LogicalType)]) -> Self {
-    //     let keys: Vec<CString> = fields.iter().map(|f| CString::new(f.0).unwrap()).collect();
-    //     let values: Vec<duckdb_logical_type> = fields.iter().map(|it| it.1.ptr).collect();
-    //     let name_ptrs = keys
-    //         .iter()
-    //         .map(|it| it.as_ptr())
-    //         .collect::<Vec<*const c_char>>();
+    /// Creates a decimal type from its `width` and `scale`.
+    pub fn decimal(width: u8, scale: u8) -> Self {
+        unsafe {
+            Self {
+                ptr: duckdb_create_decimal_type(width, scale),
+            }
+        }
+    }
 
-    //     unsafe {
-    //         Self {
-    //             ptr: duckdb_create_struct_type(
-    //                 fields.len() as idx_t,
-    //                 name_ptrs.as_slice().as_ptr().cast_mut(),
-    //                 values.as_slice().as_ptr(),
-    //             ),
-    //         }
-    //     }
-    // }
+    /// Retrieves the decimal width
+    /// Returns 0 if the LogicalType is not a decimal
+    pub fn decimal_width(&self) -> u8 {
+        unsafe { duckdb_decimal_width(self.ptr) }
+    }
+
+    /// Retrieves the decimal scale
+    /// Returns 0 if the LogicalType is not a decimal
+    pub fn decimal_scale(&self) -> u8 {
+        unsafe { duckdb_decimal_scale(self.ptr) }
+    }
+
+    /// Make a `LogicalType` for `struct`
+    pub fn struct_type(fields: &[(&str, LogicalType)]) -> Self {
+        let keys: Vec<CString> = fields.iter().map(|f| CString::new(f.0).unwrap()).collect();
+        let values: Vec<duckdb_logical_type> = fields.iter().map(|it| it.1.ptr).collect();
+        let name_ptrs = keys.iter().map(|it| it.as_ptr()).collect::<Vec<*const c_char>>();
+
+        unsafe {
+            Self {
+                ptr: duckdb_create_struct_type(
+                    values.as_slice().as_ptr().cast_mut(),
+                    name_ptrs.as_slice().as_ptr().cast_mut(),
+                    fields.len() as idx_t,
+                ),
+            }
+        }
+    }
+
+    /// Make a `LogicalType` for `union`
+    pub fn union_type(fields: &[(&str, LogicalType)]) -> Self {
+        let keys: Vec<CString> = fields.iter().map(|f| CString::new(f.0).unwrap()).collect();
+        let values: Vec<duckdb_logical_type> = fields.iter().map(|it| it.1.ptr).collect();
+        let name_ptrs = keys.iter().map(|it| it.as_ptr()).collect::<Vec<*const c_char>>();
+
+        unsafe {
+            Self {
+                ptr: duckdb_create_union_type(
+                    values.as_slice().as_ptr().cast_mut(),
+                    name_ptrs.as_slice().as_ptr().cast_mut(),
+                    fields.len() as idx_t,
+                ),
+            }
+        }
+    }
 
     /// Logical type ID
     pub fn id(&self) -> LogicalTypeId {
@@ -206,16 +247,22 @@ impl LogicalType {
     pub fn num_children(&self) -> usize {
         match self.id() {
             LogicalTypeId::Struct => unsafe { duckdb_struct_type_child_count(self.ptr) as usize },
+            LogicalTypeId::Union => unsafe { duckdb_union_type_member_count(self.ptr) as usize },
             LogicalTypeId::List => 1,
             _ => 0,
         }
     }
 
     /// Logical type child name by idx
+    ///
+    /// Panics if the logical type is not a struct or union
     pub fn child_name(&self, idx: usize) -> String {
-        assert_eq!(self.id(), LogicalTypeId::Struct);
         unsafe {
-            let child_name_ptr = duckdb_struct_type_child_name(self.ptr, idx as u64);
+            let child_name_ptr = match self.id() {
+                LogicalTypeId::Struct => duckdb_struct_type_child_name(self.ptr, idx as u64),
+                LogicalTypeId::Union => duckdb_union_type_member_name(self.ptr, idx as u64),
+                _ => panic!("not a struct or union"),
+            };
             let c_str = CString::from_raw(child_name_ptr);
             let name = c_str.to_str().unwrap();
             name.to_string()
@@ -224,7 +271,62 @@ impl LogicalType {
 
     /// Logical type child by idx
     pub fn child(&self, idx: usize) -> Self {
-        let c_logical_type = unsafe { duckdb_struct_type_child_type(self.ptr, idx as u64) };
+        let c_logical_type = unsafe {
+            match self.id() {
+                LogicalTypeId::Struct => duckdb_struct_type_child_type(self.ptr, idx as u64),
+                LogicalTypeId::Union => duckdb_union_type_member_type(self.ptr, idx as u64),
+                _ => panic!("not a struct or union"),
+            }
+        };
         Self::from(c_logical_type)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{LogicalType, LogicalTypeId};
+
+    #[test]
+    fn test_struct() {
+        let fields = &[("hello", LogicalType::new(crate::vtab::LogicalTypeId::Boolean))];
+        let typ = LogicalType::struct_type(fields);
+
+        assert_eq!(typ.num_children(), 1);
+        assert_eq!(typ.child_name(0), "hello");
+        assert_eq!(typ.child(0).id(), crate::vtab::LogicalTypeId::Boolean);
+    }
+
+    #[test]
+    fn test_decimal() {
+        let typ = LogicalType::decimal(10, 2);
+
+        assert_eq!(typ.id(), crate::vtab::LogicalTypeId::Decimal);
+        assert_eq!(typ.decimal_width(), 10);
+        assert_eq!(typ.decimal_scale(), 2);
+    }
+
+    #[test]
+    fn test_decimal_methods() {
+        let typ = LogicalType::new(crate::vtab::LogicalTypeId::Varchar);
+
+        assert_eq!(typ.decimal_width(), 0);
+        assert_eq!(typ.decimal_scale(), 0);
+    }
+
+    #[test]
+    fn test_union_type() {
+        let fields = &[
+            ("hello", LogicalType::new(LogicalTypeId::Boolean)),
+            ("world", LogicalType::new(LogicalTypeId::Integer)),
+        ];
+        let typ = LogicalType::union_type(fields);
+
+        assert_eq!(typ.num_children(), 2);
+
+        assert_eq!(typ.child_name(0), "hello");
+        assert_eq!(typ.child(0).id(), LogicalTypeId::Boolean);
+
+        assert_eq!(typ.child_name(1), "world");
+        assert_eq!(typ.child(1).id(), LogicalTypeId::Integer);
     }
 }

@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::CStr, ptr, rc::Rc, sync::Arc};
+use std::{ffi::CStr, ptr, rc::Rc, sync::Arc};
 
 use arrow::{
     array::StructArray,
@@ -144,10 +144,10 @@ impl RawStatement {
 
             if let Err(err) = import_arrow2_array {
                 // When array is empty, import_array_from_c returns error with message
-                // "OutOfSpec("An ArrowArray of type X must have non-null children")
+                // "ComputeError("An ArrowArray of type X must have non-null children")
                 // Therefore, we return None when encountering this error.
                 match err {
-                    arrow2::error::Error::OutOfSpec(_) => return None,
+                    polars::error::PolarsError::ComputeError(_) => return None,
                     _ => panic!("Failed to import arrow2 Array from C: {}", err),
                 }
             }
