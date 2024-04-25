@@ -121,6 +121,10 @@ pub mod types;
 #[cfg(feature = "vtab")]
 pub mod vtab;
 
+/// The duckdb scalar function interface
+#[cfg(all(feature = "vtab", feature = "vfunc"))]
+pub mod vfunc;
+
 #[cfg(test)]
 mod test_all_types;
 
