@@ -181,7 +181,11 @@ impl From<ValueRef<'_>> for Value {
                 let offsets = items.offsets();
                 let range = offsets[idx]..offsets[idx + 1];
                 let map: Vec<Value> = range
-                    .map(|row| Row::value_ref_internal(row.try_into().unwrap(), idx, items.values()).to_owned())
+                    .map(|row| {
+                        Row::value_ref_internal(row.try_into().unwrap(), idx, items.values())
+                            .unwrap()
+                            .to_owned()
+                    })
                     .collect();
                 Value::List(map)
             }
@@ -195,6 +199,7 @@ impl From<ValueRef<'_>> for Value {
                         EnumType::UInt32(res) => res.values(),
                     },
                 )
+                .unwrap()
                 .to_owned();
 
                 if let Value::Text(s) = value {
