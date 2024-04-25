@@ -12,11 +12,7 @@ fn test_all_types() -> crate::Result<()> {
 
     let excluded = [
         // uhugeint, time_tz, and dec38_10 aren't supported in the duckdb arrow layer
-        "uhugeint",
-        "time_tz",
-        "dec38_10",
-        // union is currently blocked by https://github.com/duckdb/duckdb/pull/11326
-        "union",
+        "uhugeint", "time_tz", "dec38_10",
     ];
 
     let mut binding = database.prepare(&format!(

@@ -205,8 +205,8 @@ impl From<&DataType> for Type {
                     .map(|f| (f.name().to_owned(), Type::from(f.data_type())))
                     .collect(),
             ),
-            // DataType::Union(_, _) => Self::Union,
-            // DataType::Dictionary(_, _) => Self::Enum,
+            DataType::Union(_, _) => Self::Union,
+            DataType::Dictionary(_, _) => Self::Enum,
             DataType::Decimal128(..) => Self::Decimal,
             DataType::Decimal256(..) => Self::Decimal,
             DataType::Map(field, ..) => {
