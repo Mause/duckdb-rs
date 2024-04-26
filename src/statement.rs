@@ -459,7 +459,7 @@ impl Statement<'_> {
         let ptr = unsafe { self.stmt.ptr() };
         let value = match value {
             ToSqlOutput::Borrowed(v) => v,
-            ToSqlOutput::Owned(ref v) => ValueRef::from(v),
+            ToSqlOutput::Owned(ref v) => ValueRef::try_from(v)?,
         };
         // TODO: bind more
         let rc = match value {

@@ -83,6 +83,7 @@ pub enum Error {
 
     /// Append Error
     AppendError,
+    Unimplemented(String),
 }
 
 impl PartialEq for Error {

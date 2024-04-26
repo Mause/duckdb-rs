@@ -60,7 +60,7 @@ impl Sql {
         let value = value.to_sql()?;
         let value = match value {
             ToSqlOutput::Borrowed(v) => v,
-            ToSqlOutput::Owned(ref v) => ValueRef::from(v),
+            ToSqlOutput::Owned(ref v) => ValueRef::try_from(v)?,
         };
         match value {
             ValueRef::BigInt(i) => {

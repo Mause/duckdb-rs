@@ -88,7 +88,7 @@ impl Appender<'_> {
         let ptr = self.app;
         let value = match value {
             ToSqlOutput::Borrowed(v) => v,
-            ToSqlOutput::Owned(ref v) => ValueRef::from(v),
+            ToSqlOutput::Owned(ref v) => ValueRef::try_from(v)?,
         };
         // NOTE: we ignore the return value here
         //       because if anything failed, end_row will fail

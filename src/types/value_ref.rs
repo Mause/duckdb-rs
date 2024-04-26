@@ -221,10 +221,12 @@ impl<'a> From<&'a [u8]> for ValueRef<'a> {
     }
 }
 
-impl<'a> From<&'a Value> for ValueRef<'a> {
+impl<'a> TryFrom<&'a Value> for ValueRef<'a> {
+    type Error = crate::Error;
+
     #[inline]
-    fn from(value: &'a Value) -> ValueRef<'a> {
-        match *value {
+    fn try_from(value: &'a Value) -> Result<Self, Self::Error> {
+        let res = match *value {
             Value::Null => ValueRef::Null,
             Value::Boolean(i) => ValueRef::Boolean(i),
             Value::TinyInt(i) => ValueRef::TinyInt(i),
@@ -245,9 +247,15 @@ impl<'a> From<&'a Value> for ValueRef<'a> {
             Value::Date32(d) => ValueRef::Date32(d),
             Value::Time64(t, d) => ValueRef::Time64(t, d),
             Value::Interval { months, days, nanos } => ValueRef::Interval { months, days, nanos },
-            Value::List(..) => unimplemented!(),
-            Value::Enum(..) => todo!(),
-        }
+            _ => {
+                return Err(crate::Error::Unimplemented(format!(
+                    "Column Type: {}",
+                    value.data_type()
+                )))
+            }
+        };
+
+        Ok(res)
     }
 }
 
