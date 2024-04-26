@@ -134,7 +134,7 @@ impl<'a> ValueRef<'a> {
     pub fn as_str(&self) -> FromSqlResult<&'a str> {
         match *self {
             ValueRef::Text(t) => std::str::from_utf8(t).map_err(|e| FromSqlError::Other(Box::new(e))),
-            _ => Err(FromSqlError::InvalidType),
+            _ => Err(FromSqlError::InvalidType("Expected Text".into())),
         }
     }
 
@@ -145,7 +145,7 @@ impl<'a> ValueRef<'a> {
         match *self {
             ValueRef::Blob(b) => Ok(b),
             ValueRef::Text(t) => Ok(t),
-            _ => Err(FromSqlError::InvalidType),
+            _ => Err(FromSqlError::InvalidType("Expected Blob or Text".into())),
         }
     }
 }

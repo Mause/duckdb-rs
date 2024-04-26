@@ -98,7 +98,7 @@ impl FromSql for NaiveDateTime {
                 };
                 NaiveDateTime::parse_from_str(s, format).map_err(|err| FromSqlError::Other(Box::new(err)))
             }
-            _ => Err(FromSqlError::InvalidType),
+            _ => Err(FromSqlError::InvalidType("Expected Text or Timestamp".into())),
         }
     }
 }
