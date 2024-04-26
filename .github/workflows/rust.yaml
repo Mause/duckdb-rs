@@ -25,16 +25,16 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # This has a matcher for test panics, so we use it even though elsewhere
       # we use actions-rs/toolchain.
-      - uses: hecrj/setup-rust-action@v1
+      - uses: hecrj/setup-rust-action@v2
         with:
           rust-version: stable${{ matrix.host }}
           targets: ${{ matrix.target }}
           components: 'rustfmt, clippy'
       # download libduckdb
-      - uses: robinraju/release-downloader@v1.4
+      - uses: robinraju/release-downloader@v1.9
         name: Download duckdb
         with:
           repository: "duckdb/duckdb"
@@ -77,10 +77,10 @@ jobs:
       # For windows
       - name: Windows extract duckdb
         if: matrix.os == 'windows-latest'
-        uses: DuckSoft/extract-7z-action@v1.0
+        uses: ihiroky/extract-action@v1
         with:
-          pathSource: D:\a\duckdb-rs\duckdb-rs\${{ matrix.duckdb }}
-          pathTarget: ${{ github.workspace }}/libduckdb
+          file_path: D:\a\duckdb-rs\duckdb-rs\${{ matrix.duckdb }}
+          extract_dir: ${{ github.workspace }}/libduckdb
 
       - name: Add path to PATH environment variable
         if: matrix.os == 'windows-latest'
@@ -106,18 +106,18 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # - run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
       # - run: vcpkg install openssl:x64-windows-static-md
       - run: choco install openssl --execution-timeout 5400
       - run: echo 'OPENSSL_DIR=C:\Program Files\OpenSSL' | Out-File -FilePath $env:GITHUB_ENV -Append
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: ~/.cargo/registry/index
           key: index-${{ runner.os }}-${{ github.run_number }}
           restore-keys: |
             index-${{ runner.os }}-
-      - uses: hecrj/setup-rust-action@v1
+      - uses: hecrj/setup-rust-action@v2
         with:
           rust-version: stable
           targets: x86_64-pc-windows-msvc
@@ -128,9 +128,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # Need nightly rust.
-      - uses: hecrj/setup-rust-action@v1
+      - uses: hecrj/setup-rust-action@v2
         with:
           rust-version: nightly
           components: rust-src
