@@ -84,6 +84,63 @@ impl VTab for HelloVTab {
     }
 }
 
+struct NestedTypeTableFunction;
+impl VTab for NestedTypeTableFunction {
+    type InitData = HelloInitData;
+    type BindData = HelloBindData;
+
+    unsafe fn bind(bind: &BindInfo, data: *mut Self::BindData) -> Result<(), Box<dyn std::error::Error>> {
+        let logical_type = LogicalType::new(LogicalTypeId::Varchar);
+        bind.add_result_column(
+            "array",
+            LogicalType::list(&logical_type)
+        );
+        Ok(())
+    }
+
+    unsafe fn init(_: &InitInfo, data: *mut Self::InitData) -> Result<(), Box<dyn std::error::Error>> {
+        unsafe {
+            (*data).done = false;
+        }
+        Ok(())
+    }
+
+    unsafe fn func(func: &FunctionInfo, output: &mut DataChunk) -> Result<(), Box<dyn std::error::Error>> {
+        let init_info = func.get_init_data::<Self::InitData>();
+        let bind_info = func.get_bind_data::<Self::BindData>();
+
+        unsafe {
+            if (*init_info).done {
+                output.set_len(0);
+            } else {
+                (*init_info).done = true;
+                let vector = output.flat_vector(0);
+                // let path = CString::from_raw((*bind_info).path);
+                // let schema = CString::from_raw((*bind_info).schema);
+                // let result = CString::new(format!("Hello {}", path.to_str()?, schema.to_str()?))?;
+                // Can't consume the CString
+                // (*bind_info).path = CString::into_raw(path);
+                // (*bind_info).schema = CString::into_raw(schema);
+
+                vector.as_list().child(0)
+
+                vector.insert(0, result);
+
+                vector.insert(0, result);
+                output.set_len(1);
+            }
+        }
+        Ok(())
+    }
+
+    fn parameters() -> Option<Vec<LogicalType>> {
+        Some(vec![
+            LogicalType::new(LogicalTypeId::Varchar),
+            LogicalType::new(LogicalTypeId::Varchar),
+        ])
+    }
+}
+
 // Exposes a extern C function named "libhello_ext_init" in the compiled dynamic library,
 // the "entrypoint" that duckdb will use to load the extension.
 #[duckdb_entrypoint]

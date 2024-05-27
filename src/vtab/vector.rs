@@ -1,5 +1,7 @@
 use std::{any::Any, ffi::CString, slice};
 
+use libduckdb_sys::{duckdb_array_type_array_size, duckdb_array_type_child_type, duckdb_array_vector_get_child};
+
 use super::LogicalType;
 use crate::ffi::{
     duckdb_list_entry, duckdb_list_vector_get_child, duckdb_list_vector_get_size, duckdb_list_vector_reserve,
@@ -86,6 +88,31 @@ impl FlatVector {
         assert!(data.len() <= self.capacity());
         self.as_mut_slice::<T>()[0..data.len()].copy_from_slice(data);
     }
+
+    /// As array
+    pub fn as_array(&self) -> ArrayVector {
+        ArrayVector::from(self.ptr)
+    }
+
+    /// As list
+    pub fn as_list(&self) -> ListVector {
+        ListVector::from(self.ptr)
+    }
+
+    /// As struct
+    pub fn as_struct(&self) -> StructVector {
+        StructVector::from(self.ptr)
+    }
+
+    /// As map
+    pub fn as_map(&self) {
+        todo!("MapVector::from(self.ptr)")
+    }
+
+    /// As union
+    pub fn as_union(&self) {
+        todo!("UnionVector::from(self.ptr)")
+    }
 }
 
 /// A trait for inserting data into a vector.
@@ -122,6 +149,42 @@ impl From<duckdb_vector> for ListVector {
         Self {
             entries: FlatVector::from(ptr),
         }
+    }
+}
+
+pub struct ArrayVector {
+    ptr: duckdb_vector,
+}
+impl From<duckdb_vector> for ArrayVector {
+    fn from(ptr: duckdb_vector) -> Self {
+        Self { ptr }
+    }
+}
+impl Vector for ArrayVector {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+impl ArrayVector {
+    /// Returns the child in the array vector.
+    fn child(&self) -> FlatVector {
+        FlatVector::from(unsafe { duckdb_array_vector_get_child(self.ptr) })
+    }
+    /// Returns the logical type of the vector
+    fn array_type(&self) -> LogicalType {
+        unsafe { LogicalType::from(duckdb_vector_get_column_type(self.ptr)) }
+    }
+    /// Returns the child type of the array.
+    fn child_type(&self) -> LogicalType {
+        unsafe { LogicalType::from(duckdb_array_type_child_type(self.array_type().ptr)) }
+    }
+    /// Returns the array size.
+    fn array_size(&self) -> usize {
+        unsafe { duckdb_array_type_array_size(self.array_type().ptr) as usize }
     }
 }
 
