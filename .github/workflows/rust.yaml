@@ -72,7 +72,7 @@ jobs:
           LD_LIBRARY_PATH: ${{ github.workspace }}/libduckdb
       - name: Upload to codecov.io
         if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
 
       # For windows
       - name: Windows extract duckdb
