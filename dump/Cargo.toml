@@ -1,0 +1,16 @@
+[package]
+name = "missing-functions"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+glob = "*"
+grep = "*"
+shellexpand = "*"
+clang = { version = "*", features = ["clang_10_0"] }
+
+[workspace]
+
+[[bin]]
+name = "dump"
+path = "dump.rs"
