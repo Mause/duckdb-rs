@@ -1,4 +1,4 @@
-use std::{ffi::CStr, ptr, rc::Rc, sync::Arc};
+use std::{ffi::CStr, ops::Deref, ptr, rc::Rc, sync::Arc};
 
 use arrow::{
     array::StructArray,
@@ -9,7 +9,7 @@ use arrow::{
 use super::{ffi, Result};
 #[cfg(feature = "polars")]
 use crate::arrow2;
-use crate::error::result_from_duckdb_arrow;
+use crate::{error::result_from_duckdb_arrow, Error};
 
 // Private newtype for raw sqlite3_stmts that finalize themselves when dropped.
 // TODO: destroy statement and result
@@ -17,6 +17,7 @@ use crate::error::result_from_duckdb_arrow;
 pub struct RawStatement {
     ptr: ffi::duckdb_prepared_statement,
     result: Option<ffi::duckdb_arrow>,
+    duckdb_result: Option<ffi::duckdb_result>,
     schema: Option<SchemaRef>,
     // Cached SQL (trimmed) that we use as the key when we're in the statement
     // cache. This is None for statements which didn't come from the statement
@@ -33,11 +34,12 @@ pub struct RawStatement {
 
 impl RawStatement {
     #[inline]
-    pub unsafe fn new(stmt: ffi::duckdb_prepared_statement) -> RawStatement {
-        RawStatement {
+    pub unsafe fn new(stmt: ffi::duckdb_prepared_statement) -> Self {
+        Self {
             ptr: stmt,
             result: None,
             schema: None,
+            duckdb_result: None,
             statement_cache_key: None,
         }
     }
@@ -79,11 +81,11 @@ impl RawStatement {
 
     #[inline]
     pub fn step(&self) -> Option<StructArray> {
-        self.result?;
+        let out = self.result?;
         unsafe {
             let mut arrays = FFI_ArrowArray::empty();
             if ffi::duckdb_query_arrow_array(
-                self.result_unwrap(),
+                out,
                 &mut std::ptr::addr_of_mut!(arrays) as *mut _ as *mut ffi::duckdb_arrow_array,
             )
             .ne(&ffi::DuckDBSuccess)
@@ -97,7 +99,7 @@ impl RawStatement {
 
             let mut schema = FFI_ArrowSchema::empty();
             if ffi::duckdb_query_arrow_schema(
-                self.result_unwrap(),
+                out,
                 &mut std::ptr::addr_of_mut!(schema) as *mut _ as *mut ffi::duckdb_arrow_schema,
             ) != ffi::DuckDBSuccess
             {
@@ -108,6 +110,39 @@ impl RawStatement {
             let struct_array = StructArray::from(array_data);
             Some(struct_array)
         }
+    }
+
+    #[inline]
+    pub fn streaming_step(&self, schema: SchemaRef) -> Option<StructArray> {
+        if let Some(result) = self.duckdb_result {
+            unsafe {
+                let mut out = ffi::duckdb_stream_fetch_chunk(result);
+
+                if out.is_null() {
+                    return None;
+                }
+
+                let mut arrays = FFI_ArrowArray::empty();
+                ffi::duckdb_result_arrow_array(
+                    result,
+                    out,
+                    &mut std::ptr::addr_of_mut!(arrays) as *mut _ as *mut ffi::duckdb_arrow_array,
+                );
+
+                ffi::duckdb_destroy_data_chunk(&mut out);
+
+                if arrays.is_empty() {
+                    return None;
+                }
+
+                let schema = FFI_ArrowSchema::try_from(schema.deref()).ok()?;
+                let array_data = from_ffi(arrays, &schema).expect("ok");
+                let struct_array = StructArray::from(array_data);
+                return Some(struct_array);
+            }
+        }
+
+        None
     }
 
     #[cfg(feature = "polars")]
@@ -140,7 +175,7 @@ impl RawStatement {
 
             let arrow2_field =
                 arrow2::ffi::import_field_from_c(&ffi_arrow2_schema).expect("Failed to import arrow2 Field from C");
-            let import_arrow2_array = arrow2::ffi::import_array_from_c(ffi_arrow2_array, arrow2_field.data_type);
+            let import_arrow2_array = arrow2::ffi::import_array_from_c(ffi_arrow2_array, arrow2_field.dtype);
 
             if let Err(err) = import_arrow2_array {
                 // When array is empty, import_array_from_c returns error with message
@@ -148,7 +183,7 @@ impl RawStatement {
                 // Therefore, we return None when encountering this error.
                 match err {
                     polars::error::PolarsError::ComputeError(_) => return None,
-                    _ => panic!("Failed to import arrow2 Array from C: {}", err),
+                    _ => panic!("Failed to import arrow2 Array from C: {err}"),
                 }
             }
 
@@ -242,6 +277,22 @@ impl RawStatement {
         }
     }
 
+    pub fn execute_streaming(&mut self) -> Result<()> {
+        self.reset_result();
+        unsafe {
+            let mut out: ffi::duckdb_result = std::mem::zeroed();
+
+            let rc = ffi::duckdb_execute_prepared_streaming(self.ptr, &mut out);
+            if rc != ffi::DuckDBSuccess {
+                return Err(Error::DuckDBFailure(ffi::Error::new(rc), None));
+            }
+
+            self.duckdb_result = Some(out);
+
+            Ok(())
+        }
+    }
+
     #[inline]
     pub fn reset_result(&mut self) {
         self.schema = None;
@@ -250,6 +301,12 @@ impl RawStatement {
                 ffi::duckdb_destroy_arrow(&mut self.result_unwrap());
             }
             self.result = None;
+        }
+        if let Some(mut result) = self.duckdb_result {
+            unsafe {
+                ffi::duckdb_destroy_result(&mut result);
+            }
+            self.duckdb_result = None;
         }
     }
 
